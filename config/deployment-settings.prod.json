@@ -1,0 +1,9 @@
+{
+  "EnvironmentVariables": [
+    { "SchemaName": "TODO_prefix_ConfidenceThreshold", "Value": "0.8" },
+    { "SchemaName": "TODO_prefix_Mailbox", "Value": "prod-mailbox@example.com" }
+  ],
+  "ConnectionReferences": [
+    { "LogicalName": "TODO_prefix_OutlookConnRef", "ConnectionId": "", "ConnectorId": "/providers/Microsoft.PowerApps/apis/shared_office365" }
+  ]
+}

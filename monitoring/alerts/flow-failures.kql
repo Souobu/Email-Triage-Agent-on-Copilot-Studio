@@ -1,0 +1,4 @@
+// TODO: adapt to the telemetry you actually emit to Application Insights.
+exceptions
+| where timestamp > ago(15m)
+| summarize failures = count() by bin(timestamp, 5m)
