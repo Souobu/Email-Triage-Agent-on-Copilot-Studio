@@ -1,0 +1,22 @@
+# Build output
+out/
+*.zip
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars.secret
+crash.log
+
+# Secrets and local config
+.env
+*.pem
+*.pfx
+local.settings.json
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
