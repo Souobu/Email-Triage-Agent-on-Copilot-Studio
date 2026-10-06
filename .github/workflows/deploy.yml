@@ -1,0 +1,88 @@
+# STARTER: main -> build managed -> Test -> tests gate -> approval -> Prod.
+# Create GitHub Environments: test, prod (add required reviewers on prod).
+# Set variables: TEST_ENV_URL, PROD_ENV_URL, PP_APP_ID, PP_TENANT_ID.
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "solutions/**"
+      - "config/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: microsoft/powerplatform-actions/actions-install@v1
+      - name: Pack managed solution
+        uses: microsoft/powerplatform-actions/pack-solution@v1
+        with:
+          solution-folder: solutions/EmailTriage
+          solution-file: out/EmailTriage_managed.zip
+          solution-type: Managed
+      - uses: actions/upload-artifact@v4
+        with:
+          name: solution-managed
+          path: out/EmailTriage_managed.zip
+
+  deploy-test:
+    needs: build
+    runs-on: windows-latest
+    environment: test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: solution-managed
+          path: out
+      - uses: microsoft/powerplatform-actions/actions-install@v1
+      - name: Import to Test
+        uses: microsoft/powerplatform-actions/import-solution@v1
+        with:
+          environment-url: ${{ vars.TEST_ENV_URL }}
+          app-id: ${{ vars.PP_APP_ID }}
+          tenant-id: ${{ vars.PP_TENANT_ID }}
+          solution-file: out/EmailTriage_managed.zip
+          use-deployment-settings-file: true
+          deployment-settings-file: config/deployment-settings.test.json
+      - name: Smoke test
+        shell: pwsh
+        run: ./tests/smoke/smoke-test.ps1 -EnvironmentUrl "${{ vars.TEST_ENV_URL }}"
+
+  agent-tests:
+    needs: deploy-test
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      # TODO: run Copilot Studio Kit test sets against the Test agent and fail the job
+      # when the quality score is below the threshold documented in docs/adr/.
+      - name: Placeholder gate
+        run: echo "TODO - implement agent test gate"
+
+  deploy-prod:
+    needs: agent-tests
+    runs-on: windows-latest
+    environment: prod   # required reviewers = manual approval gate
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: solution-managed
+          path: out
+      - uses: microsoft/powerplatform-actions/actions-install@v1
+      - name: Import to Prod
+        uses: microsoft/powerplatform-actions/import-solution@v1
+        with:
+          environment-url: ${{ vars.PROD_ENV_URL }}
+          app-id: ${{ vars.PP_APP_ID }}
+          tenant-id: ${{ vars.PP_TENANT_ID }}
+          solution-file: out/EmailTriage_managed.zip
+          use-deployment-settings-file: true
+          deployment-settings-file: config/deployment-settings.prod.json

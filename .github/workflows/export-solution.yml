@@ -1,0 +1,45 @@
+# STARTER: manual export from Dev, unpack, and open a PR.
+name: Export solution from Dev
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+  id-token: write
+
+jobs:
+  export:
+    runs-on: windows-latest
+    environment: dev
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: microsoft/powerplatform-actions/actions-install@v1
+
+      # TODO: authenticate with federated credentials. Follow the copilot-alm-starter
+      # instructions for the exact inputs (environment URL, app id, tenant id).
+
+      - name: Export solution
+        uses: microsoft/powerplatform-actions/export-solution@v1
+        with:
+          environment-url: ${{ vars.DEV_ENV_URL }}
+          app-id: ${{ vars.PP_APP_ID }}
+          tenant-id: ${{ vars.PP_TENANT_ID }}
+          solution-name: EmailTriage
+          solution-output-file: out/EmailTriage.zip
+
+      - name: Unpack solution
+        uses: microsoft/powerplatform-actions/unpack-solution@v1
+        with:
+          solution-file: out/EmailTriage.zip
+          solution-folder: solutions/EmailTriage
+          solution-type: Unmanaged
+
+      - name: Open pull request
+        uses: peter-evans/create-pull-request@v6
+        with:
+          branch: export/emailtriage
+          title: "Export EmailTriage solution from Dev"
+          commit-message: "Export EmailTriage solution from Dev"

@@ -1,0 +1,59 @@
+# STARTER: verify action names/versions against microsoft/copilot-alm-starter.
+name: PR validate
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  id-token: write   # needed for federated credentials (OIDC)
+
+jobs:
+  solution:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Power Platform tools
+        uses: microsoft/powerplatform-actions/actions-install@v1
+
+      - name: Pack solution (unmanaged) to prove it builds
+        uses: microsoft/powerplatform-actions/pack-solution@v1
+        with:
+          solution-folder: solutions/EmailTriage
+          solution-file: out/EmailTriage.zip
+          solution-type: Unmanaged
+
+      # TODO: add the solution checker (check-solution action) once CI authentication
+      # to the Dev/Test environment is configured (see docs/runbook.md).
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check JSON files parse
+        run: |
+          find . -name "*.json" -not -path "./.git/*" -print0 | xargs -0 -n1 python3 -c "import json,sys; json.load(open(sys.argv[1]))"
+
+  secret-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  terraform-validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+      - name: Terraform fmt and validate
+        working-directory: infra/terraform
+        run: |
+          terraform fmt -check -recursive
+          terraform init -backend=false
+          terraform validate

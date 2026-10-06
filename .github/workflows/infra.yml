@@ -1,0 +1,42 @@
+# STARTER: terraform plan on PR, apply on main (with approval via the 'infra' environment).
+# TODO: configure Azure login with OIDC (azure/login) and remote state before enabling.
+name: Infra
+
+on:
+  pull_request:
+    paths: ["infra/**"]
+  push:
+    branches: [main]
+    paths: ["infra/**"]
+
+permissions:
+  contents: read
+  id-token: write
+  pull-requests: write
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra/terraform
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+      # - uses: azure/login@v2   # TODO: client-id, tenant-id, subscription-id from vars
+      - run: terraform init -backend=false   # TODO: switch to the remote backend
+      - run: terraform plan -var-file=envs/dev.tfvars -input=false
+
+  apply:
+    if: github.ref == 'refs/heads/main'
+    needs: plan
+    runs-on: ubuntu-latest
+    environment: infra
+    defaults:
+      run:
+        working-directory: infra/terraform
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+      # - uses: azure/login@v2
+      - run: echo "TODO - terraform init (remote backend) and terraform apply -auto-approve"
